@@ -61,6 +61,7 @@ int main(void)
     rcc_periph_clock_enable(RCC_GPIOA);
     rcc_periph_clock_enable(RCC_GPIOB);
     rcc_periph_clock_enable(RCC_GPIOC);
+    rcc_periph_clock_enable(RCC_AFIO);
 
     /*gpio_set_mode(GPIOA, GPIO_MODE_INPUT, 0, GPIO15);
     gpio_set(GPIOA, GPIO15);
@@ -95,7 +96,8 @@ int main(void)
     EXTI_GO(EXTI3, EXTI_TRIGGER_BOTH);
     //EXTI_GO(EXTI4, EXTI_TRIGGER_BOTH);
 
-    EXTI_GO(EXTI7, EXTI_TRIGGER_BOTH);
+    exti_select_source(ps2keyboard.clock_pin_id, ps2keyboard.clock_pin_bank);
+    EXTI_GO(ps2keyboard.clock_pin_id, EXTI_TRIGGER_BOTH)
 
     nvic_enable_irq(NVIC_EXTI0_IRQ);
     nvic_enable_irq(NVIC_EXTI1_IRQ);
@@ -211,13 +213,13 @@ void exti3_isr(void)
 
 void exti9_5_isr(void)
 {
-    if(exti_get_flag_status(EXTI7))
+    if (exti_get_flag_status(ps2keyboard.clock_pin_id))
     {
-        bool clock_state=gpio_get(GPIOA, GPIO7);
-        bool data_state=gpio_get(GPIOA, GPIO6);
+        bool clock_state=gpio_get(ps2keyboard.clock_pin_bank, ps2keyboard.clock_pin_id);
+        bool data_state=gpio_get(ps2keyboard.data_pin_bank, ps2keyboard.data_pin_id);
 
         ps2keyboard.clock_update(clock_state, data_state);
-        exti_reset_request(EXTI7);
+        exti_reset_request(ps2keyboard.clock_pin_id);
     }
 }
 

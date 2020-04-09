@@ -45,10 +45,10 @@ public:
     void init();
     void clock_update(bool clock_state, bool data_state);
     void decode_scancode();
-    const uint32_t data_pin_bank = GPIOA;
-    const uint16_t data_pin_id = GPIO6;
-    const uint32_t clock_pin_bank = GPIOA;
-    const uint16_t clock_pin_id = GPIO7;
+    const uint32_t data_pin_bank = GPIOB;   // GPIOA;
+    const uint16_t data_pin_id = GPIO9;     // GPIO6;
+    const uint32_t clock_pin_bank = GPIOB;  // GPIOA;
+    const uint16_t clock_pin_id = GPIO8;    // GPIO7;
 
     const uint8_t usb_key_state_is_sent = 0x01;
     const uint8_t usb_key_state_is_down = 0x02;
