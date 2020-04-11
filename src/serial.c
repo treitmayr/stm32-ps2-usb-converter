@@ -89,12 +89,11 @@ void setup_serial(void)
     /* Initialize output ring buffer. */
     ring_init(&output_ring, output_ring_buffer, BUFFER_SIZE);
 
-    /* Enable the USART1 interrupt. */
-    nvic_enable_irq(NVIC_USART1_IRQ);
-
-
     /* Setup GPIO pin GPIO_USART1_RE_TX on GPIO port B for transmit. */
     gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART1_TX);
+
+    /* Enable the USART1 interrupt. */
+    nvic_enable_irq(NVIC_USART1_IRQ);
 
     /* Setup UART parameters. */
     usart_set_baudrate(USART1, 115200);

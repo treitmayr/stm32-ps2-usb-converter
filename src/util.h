@@ -2,7 +2,7 @@
 #include <stdint.h>
 
 #define UNUSED(x) ((void)x);
-extern unsigned long systicks;
+extern volatile unsigned long systicks;
 
 inline void delay(uint32_t usecs)
 {

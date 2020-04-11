@@ -33,7 +33,7 @@
 #include "ps2handler.h"
 
 extern usbd_device *usbd_dev;
-unsigned long systicks=0;
+volatile unsigned long systicks=0;
 ps2handler ps2keyboard;
 
 
@@ -70,11 +70,11 @@ int main(void)
     printf("Configuring USB\n");
     setup_usb();
 
+    printf("Configuring GPIO\n");
     // GPIO C13 is the onboard LED
     gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
     // Disable the led. It is active LOW.
     gpio_set(GPIOC, GPIO13);
-
 
     // GPIO pins for media keys. Set to input and enable internal pulldown
     gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO0);
@@ -85,6 +85,9 @@ int main(void)
     gpio_clear(GPIOA, GPIO2);
     gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, GPIO3);
     gpio_clear(GPIOA, GPIO3);
+
+    printf("Enabling PS/2 Port\n");
+    ps2keyboard.init();
 
     printf("Configuring Interupts\n");
 
@@ -118,12 +121,20 @@ int main(void)
     systick_interrupt_enable();
     systick_counter_enable();
 
-    printf("Enabling PS/2 Port\n");
-    ps2keyboard.init();
+    //printf("Enabling PS/2 Port\n");
+    //ps2keyboard.init();
 
-    while (1)
-        //__asm("wfi");
+    // do not sleep for 10 sec to allow flashing
+    while (systicks < (10 * 1000UL))
+    {
         usbd_poll(usbd_dev);
+    }
+    printf("Switching to interrupt mode\n");
+    while (1)
+    {
+        __asm("wfi");
+        //usbd_poll(usbd_dev);
+    }
 }
 
 bool read_gpio_debounced(int bank, int port)
@@ -275,7 +286,7 @@ void sys_tick_handler(void)
             ps2keyboard.usb_keys[4],
         };
 
-        uint16_t sent_bytes=usbd_ep_write_packet(usbd_dev, 0x81, buf, 8);
+        uint16_t sent_bytes = usb_write_keyboard_packet(buf, 8);
 
         if(sent_bytes)
         {
@@ -328,7 +339,7 @@ void sys_tick_handler(void)
         if(f4)
             buf2[0]|=keycode_media_mute;
 
-        usbd_ep_write_packet(usbd_dev, 0x82, buf2, 1);
+        usb_write_mediakey_packet(buf2, 1);
 
         //Clear key update required flag
         keys_need_update=false;

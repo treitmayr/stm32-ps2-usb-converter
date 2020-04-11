@@ -9,6 +9,7 @@
 #include <libopencm3/usb/usbd.h>
 #include <libopencm3/usb/hid.h>
 #include <libopencm3/stm32/st_usbfs.h>
+#include <libopencm3/cm3/nvic.h>
 
 
 /* Define this to include the DFU APP interface. */
@@ -323,7 +324,6 @@ static int hid_control_request_interface(usbd_device *dev, struct usb_setup_data
                 update_leds(data&0b001, data&0b010, data&0b100);
 
                 return USBD_REQ_HANDLED;
-
             }
             return USBD_REQ_NOTSUPP;
         }
@@ -412,11 +412,10 @@ static int dfu_control_request(usbd_device *dev, struct usb_setup_data *req, uin
 }
 #endif
 
+volatile bool usb_ready = false;
+
 static void hid_set_config(usbd_device *dev, uint16_t wValue)
 {
-    (void)wValue;
-    (void)dev;
-
     usbd_ep_setup(dev, 0x81, USB_ENDPOINT_ATTR_INTERRUPT, 8, NULL);
     usbd_ep_setup(dev, 0x82, USB_ENDPOINT_ATTR_INTERRUPT, 8, NULL);
 
@@ -439,6 +438,12 @@ static void hid_set_config(usbd_device *dev, uint16_t wValue)
                 USB_REQ_TYPE_TYPE | USB_REQ_TYPE_RECIPIENT,
                 dfu_control_request);
 #endif
+
+    if (wValue > 0)
+    {
+        usb_ready = true;
+        printf("USB ready\n");
+    }
 }
 
 static void handle_suspend(void)
@@ -464,6 +469,7 @@ static void handle_resume(void)
 static void handle_reset(void)
 {
     printf("%s called\n", __FUNCTION__);
+    usb_ready = false;
 }
 
 void setup_usb()
@@ -472,5 +478,43 @@ void setup_usb()
     usbd_register_set_config_callback(usbd_dev, hid_set_config);
     //usbd_register_suspend_callback(usbd_dev, &handle_suspend);
     //usbd_register_resume_callback(usbd_dev, &handle_resume);
-    //usbd_register_reset_callback(usbd_dev, &handle_reset);
+    usbd_register_reset_callback(usbd_dev, &handle_reset);
+
+    //nvic_enable_irq(NVIC_USB_HP_CAN_TX_IRQ);
+    nvic_enable_irq(NVIC_USB_LP_CAN_RX0_IRQ);
+    nvic_enable_irq(NVIC_USB_WAKEUP_IRQ);
 }
+
+uint16_t usb_write_packet(uint8_t addr, const void *buf, uint16_t len)
+{
+    uint16_t sent_bytes = 0;
+    if (usb_ready)
+    {
+        sent_bytes = usbd_ep_write_packet(usbd_dev, addr, buf, len);
+    }
+    return sent_bytes;
+}
+
+uint16_t usb_write_keyboard_packet(const void *buf, uint16_t len)
+{
+    return usb_write_packet(0x81, buf, len);
+}
+
+uint16_t usb_write_mediakey_packet(const void *buf, uint16_t len)
+{
+    return usb_write_packet(0x82, buf, len);
+}
+
+void usb_int_relay(void) {
+  /* Need to pass a parameter... otherwise just alias it directly. */
+  usbd_poll(usbd_dev);
+}
+
+void usb_wakeup_isr(void)
+__attribute__ ((alias ("usb_int_relay")));
+
+void usb_hp_can_tx_isr(void)
+__attribute__ ((alias ("usb_int_relay")));
+
+void usb_lp_can_rx0_isr(void)
+__attribute__ ((alias ("usb_int_relay")));
