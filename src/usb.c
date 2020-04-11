@@ -479,8 +479,11 @@ void setup_usb()
     //usbd_register_suspend_callback(usbd_dev, &handle_suspend);
     //usbd_register_resume_callback(usbd_dev, &handle_resume);
     usbd_register_reset_callback(usbd_dev, &handle_reset);
+}
 
-    //nvic_enable_irq(NVIC_USB_HP_CAN_TX_IRQ);
+void usb_enable_interrupts()
+{
+    nvic_enable_irq(NVIC_USB_HP_CAN_TX_IRQ);
     nvic_enable_irq(NVIC_USB_LP_CAN_RX0_IRQ);
     nvic_enable_irq(NVIC_USB_WAKEUP_IRQ);
 }

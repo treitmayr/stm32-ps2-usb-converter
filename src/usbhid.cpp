@@ -129,11 +129,11 @@ int main(void)
     {
         usbd_poll(usbd_dev);
     }
-    printf("Switching to interrupt mode\n");
+    printf("Switching to USB interrupt mode\n");
+    usb_enable_interrupts();
     while (1)
     {
         __asm("wfi");
-        //usbd_poll(usbd_dev);
     }
 }
 
